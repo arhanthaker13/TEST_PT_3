@@ -30,13 +30,12 @@ class SemanticScholarService:
         if api_key and api_key != "your_api_key_here":
             self.session.headers["x-api-key"] = api_key
 
-    def _get(self, url: str, params: dict, max_retries: int = 3) -> dict:
+    def _get(self, url: str, params: dict, max_retries: int = 1) -> dict:
         for attempt in range(max_retries):
-            # Conservative throttle for unauthenticated requests (~3s between calls)
-            if attempt == 0:
-                time.sleep(3)
-
-            resp = self.session.get(url, params=params, timeout=10)
+            try:
+                resp = self.session.get(url, params=params, timeout=5)
+            except requests.exceptions.RequestException as exc:
+                raise SemanticScholarError(f"Semantic Scholar connection error: {exc}") from exc
 
             if resp.status_code == 200:
                 return resp.json()
@@ -45,12 +44,7 @@ class SemanticScholarService:
                 raise PaperNotFoundError(f"Paper not found: {url}")
 
             if resp.status_code == 429:
-                if attempt == max_retries - 1:
-                    raise RateLimitError("Semantic Scholar rate limit exceeded")
-                # Respect Retry-After header if present, otherwise back off 30s/60s
-                retry_after = int(resp.headers.get("Retry-After", 30 * (attempt + 1)))
-                time.sleep(retry_after)
-                continue
+                raise RateLimitError("Semantic Scholar rate limit exceeded")
 
             if resp.status_code in (401, 403):
                 raise SemanticScholarError(
@@ -106,8 +100,6 @@ def _normalize_edge(raw: dict) -> dict:
 
 
 def get_service():
-    """Return the appropriate SS service based on USE_MOCK_DATA env var."""
-    if os.getenv("USE_MOCK_DATA", "").lower() == "true":
-        from backend.services.mock_semantic_scholar import MockSemanticScholarService
-        return MockSemanticScholarService()
-    return SemanticScholarService()
+    """Return a FallbackService that tries Semantic Scholar then OpenAlex."""
+    from backend.services.openalex import FallbackService, OpenAlexService
+    return FallbackService(SemanticScholarService(), OpenAlexService())

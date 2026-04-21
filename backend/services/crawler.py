@@ -10,7 +10,6 @@ from backend.services.embeddings import EmbeddingService, paper_text
 from backend.services.semantic_scholar import (
     PaperNotFoundError,
     RateLimitError,
-    SemanticScholarService,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,10 +20,11 @@ DEFAULT_SIMILARITY_THRESHOLD = 0.6
 class CrawlerService:
     def __init__(
         self,
-        ss_service: SemanticScholarService | None = None,
+        ss_service=None,
         embedding_service: EmbeddingService | None = None,
     ) -> None:
-        self.ss = ss_service or SemanticScholarService()
+        from backend.services.semantic_scholar import get_service
+        self.ss = ss_service or get_service()
         self.emb = embedding_service or EmbeddingService()
 
     def crawl(
