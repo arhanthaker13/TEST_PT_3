@@ -48,6 +48,7 @@ export default function GraphView({ data, seedPaperId, onBack }) {
   const highlightFnRef = useRef(null)
   const nodeGroupRef   = useRef(null)
   const linkRef        = useRef(null)
+  const tooltipRef     = useRef(null)
 
   const [selected, setSelected] = useState(null)
   const [filters, setFilters]   = useState(EMPTY_FILTERS)
@@ -65,6 +66,28 @@ export default function GraphView({ data, seedPaperId, onBack }) {
     const validLinks = links.filter(
       l => nodeIdSet.has(l.source) && nodeIdSet.has(l.target)
     )
+
+    // Build lookup structures for color propagation
+    const nodeById = new Map(nodes.map(n => [n.id, n]))
+    const adjMap = new Map()
+    for (const l of validLinks) {
+      if (!adjMap.has(l.source)) adjMap.set(l.source, new Set())
+      if (!adjMap.has(l.target)) adjMap.set(l.target, new Set())
+      adjMap.get(l.source).add(l.target)
+      adjMap.get(l.target).add(l.source)
+    }
+
+    function resolveColor(node) {
+      if (node.paper_id === seedPaperId) return SEED_COLOR
+      if (node.field) return fieldColor(node.field)
+      const neighborIds = adjMap.get(node.id) || new Set()
+      let best = null
+      for (const nId of neighborIds) {
+        const nb = nodeById.get(nId)
+        if (nb?.field && (!best || (nb.pagerank || 0) > (best.pagerank || 0))) best = nb
+      }
+      return best ? fieldColor(best.field) : DEFAULT_COLOR
+    }
 
     const prMax = d3.max(nodes, d => d.pagerank) || 1e-10
     const radius = d3.scaleSqrt().domain([0, prMax]).range([5, 20])
@@ -109,7 +132,7 @@ export default function GraphView({ data, seedPaperId, onBack }) {
 
     nodeGroup.append('circle')
       .attr('r', d => radius(d.pagerank || 0))
-      .attr('fill', d => d.paper_id === seedPaperId ? SEED_COLOR : fieldColor(d.field))
+      .attr('fill', d => resolveColor(d))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
 
@@ -142,6 +165,8 @@ export default function GraphView({ data, seedPaperId, onBack }) {
       if (d) applyHighlight(d)
     }
 
+    const tooltip = tooltipRef.current
+
     nodeGroup
       .on('click', function (event, d) {
         event.stopPropagation()
@@ -151,11 +176,24 @@ export default function GraphView({ data, seedPaperId, onBack }) {
         if (d !== activeDatum) {
           d3.select(this).select('circle').attr('stroke', HOVER_STROKE).attr('stroke-width', 2)
         }
+        if (tooltip && d.title) {
+          tooltip.textContent = d.title
+          tooltip.style.display = 'block'
+          tooltip.style.left = (event.clientX + 14) + 'px'
+          tooltip.style.top  = (event.clientY - 32) + 'px'
+        }
+      })
+      .on('mousemove', function (event) {
+        if (tooltip) {
+          tooltip.style.left = (event.clientX + 14) + 'px'
+          tooltip.style.top  = (event.clientY - 32) + 'px'
+        }
       })
       .on('mouseleave', function (event, d) {
         if (d !== activeDatum) {
           d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 1.5)
         }
+        if (tooltip) tooltip.style.display = 'none'
       })
 
     const simulation = d3.forceSimulation(nodes)
@@ -241,12 +279,6 @@ export default function GraphView({ data, seedPaperId, onBack }) {
               {field}
             </span>
           ))}
-          {data.nodes.some(n => !n.field) && (
-            <span className="legend-item">
-              <span className="legend-dot" style={{ background: DEFAULT_COLOR }} />
-              Other
-            </span>
-          )}
         </div>
       </div>
 
@@ -259,6 +291,7 @@ export default function GraphView({ data, seedPaperId, onBack }) {
           onSelect={(node) => highlightFnRef.current?.(node.id)}
         />
 
+        <div ref={tooltipRef} className="node-tooltip" />
         <div ref={containerRef} className="graph-container">
           <svg ref={svgRef} />
           {data.nodes.length === 0 && (
