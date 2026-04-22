@@ -89,6 +89,16 @@ export default function App() {
           </div>
         )}
 
+        {!searched && view !== 'crawling' && (
+          <section className="how-it-works">
+            <h2 className="hiw-heading">How it works</h2>
+            <p>Search for any research paper by title or keywords. PaperTrail fetches it from Semantic Scholar or OpenAlex, then crawls outward through its citation network — following references and citations up to two degrees out. The result is a live map of how that paper connects to the broader research landscape.</p>
+
+            <h2 className="hiw-heading">Reading the graph</h2>
+            <p>Each node represents a paper. The bigger the node, the more influential it is — size is determined by PageRank, which measures how many other papers in the network reference it. Lines between nodes are citation links: one paper citing another. Colors indicate research field, so clusters of the same color are usually papers from the same discipline. Hover any node to see its title, or click it to open the full details panel on the right.</p>
+          </section>
+        )}
+
         {crawlError && <p className="status error">Crawl error: {crawlError}</p>}
         {searchError && <p className="status error">Error: {searchError}</p>}
 

@@ -65,6 +65,29 @@ body {
 .search-bar button:hover:not(:disabled) { background: #1d4ed8; }
 .search-bar button:disabled { background: #93c5fd; cursor: not-allowed; }
 
+/* ── How It Works ── */
+.how-it-works {
+  margin-top: 2rem;
+}
+
+.hiw-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.hiw-heading:first-child { margin-top: 0; }
+
+.how-it-works p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.7;
+}
+
 /* ── Status messages ── */
 .status {
   text-align: center;
