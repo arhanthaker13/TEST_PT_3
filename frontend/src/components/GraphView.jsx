@@ -303,7 +303,11 @@ export default function GraphView({ data, seedPaperId, onBack }) {
         </div>
 
         {selected && (
-          <NodeDetail node={selected} onClose={() => setSelected(null)} />
+          <NodeDetail
+            node={selected}
+            maxPagerank={Math.max(...data.nodes.map(n => n.pagerank || 0))}
+            onClose={() => setSelected(null)}
+          />
         )}
       </div>
     </div>

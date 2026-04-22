@@ -1,4 +1,9 @@
-export default function NodeDetail({ node, onClose }) {
+function importanceScore(pagerank, maxPagerank) {
+  if (!pagerank || !maxPagerank) return null
+  return Math.max(1, Math.round(Math.sqrt(pagerank / maxPagerank) * 10))
+}
+
+export default function NodeDetail({ node, maxPagerank, onClose }) {
   const authors = node.authors ?? []
 
   return (
@@ -18,7 +23,7 @@ export default function NodeDetail({ node, onClose }) {
           <div><dt>Citations</dt><dd>{node.citation_count.toLocaleString()}</dd></div>
         )}
         {node.pagerank != null && (
-          <div><dt>PageRank</dt><dd>{node.pagerank.toExponential(2)}</dd></div>
+          <div><dt>Importance</dt><dd>{importanceScore(node.pagerank, maxPagerank)}/10</dd></div>
         )}
       </dl>
 
