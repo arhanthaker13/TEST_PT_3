@@ -27,6 +27,7 @@ def get_graph():
             "abstract": p.abstract,
             "citation_count": p.citation_count,
             "pagerank": round(scores.get(p.id, 0.0), 8),
+            "field": p.field,
         }
         for p in papers
     ]

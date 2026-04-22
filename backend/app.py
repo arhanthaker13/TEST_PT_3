@@ -26,6 +26,9 @@ def create_app() -> Flask:
     # Import models so SQLAlchemy registers their metadata before create_all()
     import backend.models  # noqa: F401
 
+    with app.app_context():
+        db.create_all()
+
     CORS(app)
 
     app.register_blueprint(health_bp, url_prefix="/api/v1")

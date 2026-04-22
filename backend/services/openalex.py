@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 OA_BASE = "https://api.openalex.org"
 
-_WORK_FIELDS = "id,title,publication_year,cited_by_count,authorships,abstract_inverted_index,referenced_works,ids"
+_WORK_FIELDS = "id,title,publication_year,cited_by_count,authorships,abstract_inverted_index,referenced_works,ids,primary_topic"
 _EDGE_FIELDS = "id,title,publication_year,cited_by_count,authorships"
 
 
@@ -34,6 +34,8 @@ def _reconstruct_abstract(inv_idx: dict | None) -> str | None:
 
 
 def _normalize_work(raw: dict) -> dict:
+    pt = raw.get("primary_topic") or {}
+    field = (pt.get("field") or {}).get("display_name")
     return {
         "paper_id": _short_id(raw.get("id", "")),
         "title": raw.get("title"),
@@ -45,6 +47,7 @@ def _normalize_work(raw: dict) -> dict:
             for a in raw.get("authorships", [])
             if a.get("author") and a["author"].get("display_name")
         ],
+        "field": field,
         "references": [],
         "citations": [],
     }

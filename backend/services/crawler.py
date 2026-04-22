@@ -187,6 +187,7 @@ def _upsert_paper_full(data: dict) -> Paper:
     paper.year = data.get("year")
     paper.citation_count = data.get("citation_count") or 0
     paper.authors = data.get("authors") or []
+    paper.field = data.get("field")
     db.session.flush()
     return paper
 

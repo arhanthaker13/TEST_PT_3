@@ -4,7 +4,7 @@ import requests
 from typing import Optional
 
 
-PAPER_FIELDS = "paperId,title,abstract,year,authors,citationCount,referenceCount,externalIds,publicationDate"
+PAPER_FIELDS = "paperId,title,abstract,year,authors,citationCount,referenceCount,externalIds,publicationDate,s2FieldsOfStudy"
 EDGE_FIELDS = "paperId,title,year,authors,citationCount"
 
 BASE_URL = "https://api.semanticscholar.org/graph/v1"
@@ -74,6 +74,12 @@ class SemanticScholarService:
 
 
 def _normalize_paper(raw: dict) -> dict:
+    fos = raw.get("s2FieldsOfStudy") or []
+    # Prefer the "external" source (human-assigned), fall back to model-assigned
+    primary_field = next(
+        (f["category"] for f in fos if f.get("source") == "external"),
+        next((f["category"] for f in fos), None),
+    )
     return {
         "paper_id": raw.get("paperId"),
         "title": raw.get("title"),
@@ -84,6 +90,7 @@ def _normalize_paper(raw: dict) -> dict:
         "citation_count": raw.get("citationCount"),
         "reference_count": raw.get("referenceCount"),
         "external_ids": raw.get("externalIds", {}),
+        "field": primary_field,
         "references": [_normalize_edge(r) for r in raw.get("references", [])],
         "citations": [_normalize_edge(c) for c in raw.get("citations", [])],
     }

@@ -4,12 +4,28 @@ import NodeDetail from './NodeDetail'
 import PaperList from './PaperList'
 import GraphFilters from './GraphFilters'
 
-const SEED_COLOR   = '#f59e0b'
-const NODE_COLOR   = '#6366f1'
-const SEL_STROKE   = '#1d4ed8'
-const HOVER_STROKE = '#94a3b8'
-const LINK_COLOR   = '#cbd5e1'
+const SEED_COLOR    = '#f59e0b'
+const SEL_STROKE    = '#1d4ed8'
+const HOVER_STROKE  = '#94a3b8'
+const LINK_COLOR    = '#cbd5e1'
 const FADED_OPACITY = 0.08
+
+const COLOR_POOL = [
+  '#2563eb', '#dc2626', '#16a34a', '#7c3aed', '#ea580c',
+  '#0891b2', '#db2777', '#ca8a04', '#0f766e', '#84cc16',
+  '#92400e', '#0369a1', '#9333ea', '#c2410c', '#0e7490',
+  '#15803d', '#b45309', '#6d28d9', '#1d9bf0', '#be185d',
+]
+const DEFAULT_COLOR = '#6366f1'
+
+function fieldColor(field) {
+  if (!field) return DEFAULT_COLOR
+  let h = 5381
+  for (let i = 0; i < field.length; i++) {
+    h = ((h << 5) + h) ^ field.charCodeAt(i)
+  }
+  return COLOR_POOL[Math.abs(h) % COLOR_POOL.length]
+}
 
 const EMPTY_FILTERS = { yearMin: '', yearMax: '', minCitations: '', keyword: '' }
 
@@ -93,7 +109,7 @@ export default function GraphView({ data, seedPaperId, onBack }) {
 
     nodeGroup.append('circle')
       .attr('r', d => radius(d.pagerank || 0))
-      .attr('fill', d => d.paper_id === seedPaperId ? SEED_COLOR : NODE_COLOR)
+      .attr('fill', d => d.paper_id === seedPaperId ? SEED_COLOR : fieldColor(d.field))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
 
@@ -193,9 +209,13 @@ export default function GraphView({ data, seedPaperId, onBack }) {
   }, [filters, data.nodes])
 
   const visibleNodes = data.nodes.filter(n => isVisible(n, filters))
-
   const isDirty = filters.yearMin || filters.yearMax || filters.minCitations || filters.keyword
   const hiddenCount = data.nodes.length - visibleNodes.length
+
+  // Build legend from fields actually present in this graph
+  const presentFields = [...new Set(data.nodes.map(n => n.field).filter(Boolean))]
+    .map(field => ({ field, color: fieldColor(field) }))
+    .sort((a, b) => a.field.localeCompare(b.field))
 
   return (
     <div className="graph-wrapper">
@@ -206,14 +226,28 @@ export default function GraphView({ data, seedPaperId, onBack }) {
             ? `${visibleNodes.length} of ${data.nodes.length} papers · ${data.links.length} citations`
             : `${data.nodes.length} papers · ${data.links.length} citations`
           }
-          {' · '}
-          <span className="legend-seed">■</span> seed
-          {' '}
-          <span className="legend-node">■</span> cited
           {isDirty && hiddenCount > 0 && (
             <span className="graph-hidden"> · {hiddenCount} hidden</span>
           )}
         </span>
+        <div className="graph-legend">
+          <span className="legend-item">
+            <span className="legend-dot" style={{ background: SEED_COLOR }} />
+            seed
+          </span>
+          {presentFields.map(({ field, color }) => (
+            <span key={field} className="legend-item">
+              <span className="legend-dot" style={{ background: color }} />
+              {field}
+            </span>
+          ))}
+          {data.nodes.some(n => !n.field) && (
+            <span className="legend-item">
+              <span className="legend-dot" style={{ background: DEFAULT_COLOR }} />
+              Other
+            </span>
+          )}
+        </div>
       </div>
 
       <GraphFilters nodes={data.nodes} filters={filters} onChange={setFilters} />
